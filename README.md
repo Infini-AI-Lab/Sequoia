@@ -1,4 +1,5 @@
-# Sequoia
+# Sequoia: Scalable, Robust, and Hardware-aware Speculative Decoding
+[[paper]:https://arxiv.org/abs/2402.12374]
 ## Environment Set Up
 We recommend the following commands to set up the environment
 
@@ -68,6 +69,18 @@ We use the following command
 We can modify the content of demo-config.json to generate different growmaps. The growmaps for experiments in the paper in prepared in `L40_growmaps` and `A100_growmaps`. 
 
 
+## Citation
+
+If you find Sequoia useful or relevant to your project and research, please kindly cite our paper:
+
+```bibtex
+@article{chen2024sequoia,
+  title={Sequoia: Scalable, Robust, and Hardware-aware Speculative Decoding},
+  author={Chen, Zhuoming and May, Avner and Svirschevski, Ruslan and Huang, Yuhsun and Ryabinin, Max and Jia, Zhihao and Chen, Beidi},
+  journal={arXiv preprint arXiv:2402.12374},
+  year={2024}
+}
+```
 
 
 
