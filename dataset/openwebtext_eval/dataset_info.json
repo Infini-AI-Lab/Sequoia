@@ -1,0 +1,210 @@
+{
+  "builder_name": "openwebtext",
+  "citation": "@misc{Gokaslan2019OpenWeb,\n  title={OpenWebText Corpus},\n  author={Aaron Gokaslan*, Vanya Cohen*, Ellie Pavlick, Stefanie Tellex},\n  howpublished{\\url{http://Skylion007.github.io/OpenWebTextCorpus}},\n  year={2019}\n}\n",
+  "config_name": "plain_text",
+  "dataset_name": "openwebtext",
+  "dataset_size": 39769491688,
+  "description": "An open-source replication of the WebText dataset from OpenAI.\n",
+  "download_checksums": {
+    "subsets/urlsf_subset00.tar": {
+      "num_bytes": 633047040,
+      "checksum": null
+    },
+    "subsets/urlsf_subset01.tar": {
+      "num_bytes": 628838400,
+      "checksum": null
+    },
+    "subsets/urlsf_subset02.tar": {
+      "num_bytes": 629125120,
+      "checksum": null
+    },
+    "subsets/urlsf_subset03.tar": {
+      "num_bytes": 627578880,
+      "checksum": null
+    },
+    "subsets/urlsf_subset04.tar": {
+      "num_bytes": 627189760,
+      "checksum": null
+    },
+    "subsets/urlsf_subset05.tar": {
+      "num_bytes": 630200320,
+      "checksum": null
+    },
+    "subsets/urlsf_subset06.tar": {
+      "num_bytes": 625612800,
+      "checksum": null
+    },
+    "subsets/urlsf_subset07.tar": {
+      "num_bytes": 625356800,
+      "checksum": null
+    },
+    "subsets/urlsf_subset08.tar": {
+      "num_bytes": 624629760,
+      "checksum": null
+    },
+    "subsets/urlsf_subset09.tar": {
+      "num_bytes": 625807360,
+      "checksum": null
+    },
+    "subsets/urlsf_subset10.tar": {
+      "num_bytes": 625172480,
+      "checksum": null
+    },
+    "subsets/urlsf_subset11.tar": {
+      "num_bytes": 625264640,
+      "checksum": null
+    },
+    "subsets/urlsf_subset12.tar": {
+      "num_bytes": 624445440,
+      "checksum": null
+    },
+    "subsets/urlsf_subset13.tar": {
+      "num_bytes": 628961280,
+      "checksum": null
+    },
+    "subsets/urlsf_subset14.tar": {
+      "num_bytes": 626708480,
+      "checksum": null
+    },
+    "subsets/urlsf_subset15.tar": {
+      "num_bytes": 620666880,
+      "checksum": null
+    },
+    "subsets/urlsf_subset16.tar": {
+      "num_bytes": 618752000,
+      "checksum": null
+    },
+    "subsets/urlsf_subset17.tar": {
+      "num_bytes": 619141120,
+      "checksum": null
+    },
+    "subsets/urlsf_subset18.tar": {
+      "num_bytes": 617789440,
+      "checksum": null
+    },
+    "subsets/urlsf_subset19.tar": {
+      "num_bytes": 619192320,
+      "checksum": null
+    },
+    "subsets/urlsf_subset20.tar": {
+      "num_bytes": 376709120,
+      "checksum": null
+    }
+  },
+  "download_size": 12880189440,
+  "features": {
+    "input_ids": {
+      "feature": {
+        "dtype": "int32",
+        "_type": "Value"
+      },
+      "_type": "Sequence"
+    },
+    "attention_mask": {
+      "feature": {
+        "dtype": "int8",
+        "_type": "Value"
+      },
+      "_type": "Sequence"
+    }
+  },
+  "homepage": "https://skylion007.github.io/OpenWebTextCorpus/",
+  "license": "",
+  "size_in_bytes": 52649681128,
+  "splits": {
+    "train": {
+      "name": "train",
+      "num_bytes": 39769491688,
+      "num_examples": 8013769,
+      "shard_lengths": [
+        101000,
+        100000,
+        101000,
+        101000,
+        102000,
+        102000,
+        101000,
+        102000,
+        101000,
+        101000,
+        101000,
+        101000,
+        101000,
+        102000,
+        101000,
+        101000,
+        101000,
+        101000,
+        102000,
+        102000,
+        100000,
+        101000,
+        100000,
+        101000,
+        102000,
+        101000,
+        102000,
+        101000,
+        102000,
+        102000,
+        102000,
+        101000,
+        101000,
+        101000,
+        101000,
+        102000,
+        101000,
+        102000,
+        101000,
+        101000,
+        100000,
+        101000,
+        101000,
+        101000,
+        101000,
+        101000,
+        101000,
+        101000,
+        101000,
+        101000,
+        101000,
+        100000,
+        101000,
+        102000,
+        101000,
+        101000,
+        101000,
+        101000,
+        101000,
+        102000,
+        102000,
+        101000,
+        102000,
+        101000,
+        102000,
+        102000,
+        101000,
+        101000,
+        102000,
+        102000,
+        102000,
+        101000,
+        102000,
+        102000,
+        102000,
+        101000,
+        101000,
+        102000,
+        101000,
+        13769
+      ],
+      "dataset_name": "openwebtext"
+    }
+  },
+  "version": {
+    "version_str": "1.0.0",
+    "major": 1,
+    "minor": 0,
+    "patch": 0
+  }
+}
