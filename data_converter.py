@@ -15,7 +15,6 @@ def convert_wiki_dataset(tokenizer, seq_len = 256):
             return tokenizer(examples["text"], return_tensors='pt',max_length=seq_len,padding=True,truncation=True)
     dataset = dataset.map(tokenize_function, batched=True, remove_columns=['text'])
     dataset.set_format(type='torch', columns=['input_ids', 'attention_mask'])
-    #dataset.save_to_disk("/home/zhuominc/SpeculativeDecoding/data/c4_train")
     return dataset
 
 def convert_cnn_dataset(tokenizer, seq_len = 256):
