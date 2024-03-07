@@ -149,7 +149,7 @@ class SpecTree(Tree):
             q = softmax(draft_logits / self.temperature, dim=-1)
             r = self.r[pos + (self.ground_truth_len - 1)]
             
-            if p[token] >= r * q[token]:
+            if p[token] > r * q[token]:
                 return (pos + (self.ground_truth_len - 1), None)
             else:
                 p = self.residual_graph(p, q)
