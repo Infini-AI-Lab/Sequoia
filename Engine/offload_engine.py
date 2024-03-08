@@ -6,7 +6,7 @@ import math
 import torch.nn.functional as F
 from torch import nn
 from typing import List, Optional, Tuple, Union
-
+import gc
 def _make_causal_mask(
     input_ids_shape: torch.Size, dtype: torch.dtype, device: torch.device
 ):
@@ -275,13 +275,15 @@ class Llama:
         self.norm_weight = hf_model.model.norm.weight.detach().to(self.device)
         self.norm_variance_epsilon = hf_model.model.norm.variance_epsilon
         self.layers :list[LlamaLayer] = []
+        
         for idx, hf_layer in enumerate(hf_model.model.layers):
             layer = LlamaLayer(idx)
             layer.init_parameters(hf_layer=hf_layer)
             layer.init_gpu(self.device)
             self.layers.append(layer)
-            del hf_layer
-        
+            hf_model.model.layers[idx] = None
+            gc.collect()
+            
         self.num_layers = len(self.layers)
         self.buffer = LlamaLayerBuffer(self.device)
         self.buffer.init_space(self.layers[0])
