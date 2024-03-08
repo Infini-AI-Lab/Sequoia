@@ -1,8 +1,7 @@
-from .offload_engine import OffloadEngine
+from offload_engine import OffloadEngine, _make_causal_mask
 import argparse
 import time
 import torch
-from utils import _make_causal_mask
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', type=str, default="meta-llama/Llama-2-70b-hf",help='model')
 parser.add_argument('--T', type=int, default=100, help='repeat times')
