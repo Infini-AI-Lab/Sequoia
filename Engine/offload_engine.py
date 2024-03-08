@@ -280,6 +280,7 @@ class Llama:
             layer.init_parameters(hf_layer=hf_layer)
             layer.init_gpu(self.device)
             self.layers.append(layer)
+            del hf_layer
         
         self.num_layers = len(self.layers)
         self.buffer = LlamaLayerBuffer(self.device)
