@@ -250,8 +250,7 @@ else:
         target_model = OffloadEngine(max_length=args.M, model_name_or_path = args.target, dtype = torch.float16, device="cuda:0")
     else:
         target_model =  GraphInferenceEngineTG(max_length=args.M, model_name_or_path = args.target, dtype = torch.float16, device="cuda:0")
-    graph_capture_list = list(range(1, 129))
-    draft_model.initialize_cuda_graph(graph_capture_list)
+    
     residual_graph = cuda_graph_for_residual()
     path = args.growmap
     grow_map = torch.load(path)
@@ -262,6 +261,9 @@ else:
     branch_lists = grow_map['branches']
     draft_step = len(grow_map["roots"])
     
+    graph_capture_list = [sum(x) for x in branch_lists]
+    graph_capture_list.append(1)
+    draft_model.initialize_cuda_graph(graph_capture_list)
     sampling_callables = {}
     sample_gather_indices = {}
     for i in range(draft_step - 1):
