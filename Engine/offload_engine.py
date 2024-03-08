@@ -213,8 +213,8 @@ class LlamaLayer:
         self.input_layernorm_weight = self.input_layernorm_weight.to(device)
         self.post_attention_layernorm_weight = self.post_attention_layernorm_weight.to(device)
 
-        self.cos_cache = self.cos_cache.to(device)
-        self.sin_cache = self.sin_cache.to(device)
+        #self.cos_cache = self.cos_cache.to(device)
+        #self.sin_cache = self.sin_cache.to(device)
 
 
 class LlamaLayerBuffer:
@@ -232,7 +232,9 @@ class LlamaLayerBuffer:
         self.gate_proj_buffer = torch.zeros_like(layer.gate_proj).to(self.device)
         self.up_proj_buffer = torch.zeros_like(layer.up_proj).to(self.device)
         self.down_proj_buffer = torch.zeros_like(layer.down_proj).to(self.device)
-    
+
+        #self.input_layernorm_weight = torch.zeros_like(layer.input_layernorm_weight).to(self.device)
+        #self.post_attention_layernorm_weight = torch.zeros_like(layer.post_attention_layernorm_variance_epsilon).to(self.device)
     def sync_copy(self, layer: LlamaLayer):
 
         self.wq_buffer.copy_(layer.wq, non_blocking=True)
@@ -266,6 +268,7 @@ class Llama:
         self.num_key_value_groups = self.num_heads // self.num_key_value_heads
         self.max_position_embeddings = self.config.max_position_embeddings
         self.rope_theta = self.config.rope_theta
+        self.load_stream = torch.cuda.Stream(device=device)
     def init_parameters(self):
 
         hf_model = LlamaForCausalLM.from_pretrained(self.model_name, torch_dtype=self.dtype)
@@ -274,6 +277,9 @@ class Llama:
 
         self.norm_weight = hf_model.model.norm.weight.detach().to(self.device)
         self.norm_variance_epsilon = hf_model.model.norm.variance_epsilon
+
+        self.cos_cache = hf_model.model.layers[0].self_attn.rotary_emb.cos_cached.to(self.device)
+        self.sin_cache = hf_model.model.layers[0].self_attn.rotary_emb.sin_cached.to(self.device)
         self.layers :list[LlamaLayer] = []
         
         for idx, hf_layer in enumerate(hf_model.model.layers):
@@ -285,8 +291,10 @@ class Llama:
             gc.collect()
             
         self.num_layers = len(self.layers)
-        self.buffer = LlamaLayerBuffer(self.device)
-        self.buffer.init_space(self.layers[0])
+        self.buffer = [LlamaLayerBuffer(self.device) for _ in range(2)]
+        self.buffer[0].init_space(self.layers[0])
+        self.buffer[1].init_space(self.layers[0])
+
 
     def layer_compute(self, 
             buffer: LlamaLayerBuffer,
@@ -318,8 +326,8 @@ class Llama:
         kv_seq_len = key_states.shape[-2]
         kv_seq_len += self.kv_cache.kv_offset
 
-        cos = self.layers[layer_idx].cos_cache[:kv_seq_len].to(value_states.dtype)
-        sin = self.layers[layer_idx].sin_cache[:kv_seq_len].to(value_states.dtype)
+        cos = self.cos_cache[:kv_seq_len].to(value_states.dtype)
+        sin = self.sin_cache[:kv_seq_len].to(value_states.dtype)
 
         
         
@@ -370,9 +378,15 @@ class Llama:
             attention_mask: torch.FloatTensor):
         
         hidden_states = F.embedding(input_ids, self.embed_tokens)
+        self.buffer[0].sync_copy(self.layers[0])
+        torch.cuda.synchronize()
         for idx in range(self.num_layers):
-            self.buffer.sync_copy(self.layers[idx])
-            hidden_states = self.layer_compute(self.buffer, idx, hidden_states, position_ids, attention_mask)
+            with torch.cuda.stream(self.load_stream):
+                hidden_states = self.layer_compute(self.buffer[idx % 2], idx, hidden_states, position_ids, attention_mask)
+                if idx != self.num_layers - 1:
+                    self.buffer[(idx + 1) % 2].sync_copy(self.layers[idx + 1])
+            torch.cuda.synchronize()
+
         
         input_dtype = hidden_states.dtype
         hidden_states = hidden_states.to(torch.float32)

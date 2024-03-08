@@ -73,8 +73,8 @@ def simulation_fast(target_model : GraphInferenceEngineTG, draft_model: GraphInf
     dtype = torch.float16
     attn_mask = torch.full((max_length, max_length), torch.finfo(dtype).min, dtype=dtype, device='cuda:0')
     sequence = torch.tensor(list(range(max_length)), device='cuda:0').long().unsqueeze(-1)
-    new_tokens_buffer =  torch.zeros(max_length).long().to('cuda:0')
-    parents_buffer =  torch.zeros(max_length).long().to('cuda:0')
+    new_tokens_buffer =  None
+    parents_buffer =  None
     position_ids = torch.zeros(max_length).long().to('cuda:0')
     
     with torch.no_grad():
@@ -260,9 +260,11 @@ def main(args):
     branch_lists = grow_map['branches']
     draft_step = len(grow_map["roots"])
     
-    graph_capture_list = [sum(x) for x in branch_lists]
-    graph_capture_list.append(1)
-    draft_model.initialize_cuda_graph(graph_capture_list)
+    if args.cudagraph:
+        graph_capture_list = [sum(x) for x in branch_lists]
+        
+        graph_capture_list.append(1)
+        draft_model.initialize_cuda_graph(graph_capture_list)
 
     sampling_callables = {}
     sample_gather_indices = {}
@@ -310,6 +312,7 @@ if __name__ == "__main__":
     parser.add_argument('--growmap', type=str, default="../L40_growmaps/L40-CNN-7b-70b-stochastic.pt", help='growmap path')
     parser.add_argument('--T', type=float, default=0.6, help='temperature')
     parser.add_argument('--P', type=float, default=0.9, help='top_p')
+    parser.add_argument('--cudagraph', action='store_true')
     args = parser.parse_args()
 
     main(args)

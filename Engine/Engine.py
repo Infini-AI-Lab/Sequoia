@@ -185,7 +185,7 @@ class GraphInferenceEngine:
         gc.collect()
         self.mempool = torch.cuda.graphs.graph_pool_handle()
         for decoding_seqlen in decoding_seqlens:
-            if decoding_seqlen not in self.callables:
+            if decoding_seqlen not in self.callables and decoding_seqlen !=0:
                 self.callables[decoding_seqlen] = capture_graph(
                     engine=self.engine,
                     decoding_seqlen=decoding_seqlen,
@@ -215,9 +215,10 @@ class GraphInferenceEngine:
                 assert storage_ids.device == self.device
                 assert position_ids.device == self.device
                 assert input_ids.device == self.device
-                assert (dec_length in self.callables)
-            
-            logits = self.callables[dec_length](input_ids, storage_ids, position_ids, attn_mask)
+            if dec_length in self.callables:
+                logits = self.callables[dec_length](input_ids, storage_ids, position_ids, attn_mask)
+            else:
+                logits = self.inference(input_ids, storage_ids, position_ids, attn_mask)
             return logits
     
     def clear_kv(self):
