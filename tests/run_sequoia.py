@@ -253,7 +253,7 @@ def main(args):
     
     
     
-    residual_graph = cuda_graph_for_residual()
+    residual_graph = cuda_graph_for_residual(dim=args.vocab)
     path = args.growmap
     grow_map = torch.load(path)
     tree_size = grow_map["size"]
