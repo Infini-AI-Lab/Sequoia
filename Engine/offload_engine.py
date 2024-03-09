@@ -213,8 +213,6 @@ class LlamaLayer:
         self.input_layernorm_weight = self.input_layernorm_weight.to(device)
         self.post_attention_layernorm_weight = self.post_attention_layernorm_weight.to(device)
 
-        #self.cos_cache = self.cos_cache.to(device)
-        #self.sin_cache = self.sin_cache.to(device)
 
 
 class LlamaLayerBuffer:
@@ -233,8 +231,7 @@ class LlamaLayerBuffer:
         self.up_proj_buffer = torch.zeros_like(layer.up_proj).to(self.device)
         self.down_proj_buffer = torch.zeros_like(layer.down_proj).to(self.device)
 
-        #self.input_layernorm_weight = torch.zeros_like(layer.input_layernorm_weight).to(self.device)
-        #self.post_attention_layernorm_weight = torch.zeros_like(layer.post_attention_layernorm_variance_epsilon).to(self.device)
+        
     def sync_copy(self, layer: LlamaLayer):
 
         self.wq_buffer.copy_(layer.wq, non_blocking=True)
@@ -437,7 +434,7 @@ class OffloadEngine:
 
 if __name__ == "__main__":
     llm = OffloadEngine(max_length = 256, model_name_or_path = "meta-llama/Llama-2-70b-hf")
-    #llm = Llama("meta-llama/Llama-2-70b-hf")
+    
     
     input_ids = torch.LongTensor([
         [

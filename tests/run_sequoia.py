@@ -298,10 +298,19 @@ def main(args):
     prompts = []
     for sample in list_data:
         prompts.append(sample["turns"][0])
+    if args.Mode == 'spec':
+        simulation_fast(target_model=target_model, draft_model=draft_model, prompts=prompts,tokenizer=tokenizer, T=args.T, top_p=args.P,
+                                        max_length=args.M, residual_graph = residual_graph, grow_map = grow_map, sampling_callables=sampling_callables, sample_gather_indices = sample_gather_indices)
+    else:
+        simulation_baseline(target_model=target_model, draft_model=draft_model, prompts=prompts[:4],tokenizer=tokenizer, T=args.T, top_p=args.P,
+                                        max_length=args.M, residual_graph = residual_graph, grow_map = grow_map, sampling_callables=sampling_callables, sample_gather_indices = sample_gather_indices)
     
-    simulation_fast(target_model=target_model, draft_model=draft_model, prompts=prompts[:4],tokenizer=tokenizer, T=args.T, top_p=args.P,
-                                     max_length=args.M, residual_graph = residual_graph, grow_map = grow_map, sampling_callables=sampling_callables, sample_gather_indices = sample_gather_indices)
-    
+def setup_seed(seed):
+     torch.manual_seed(seed)
+     torch.cuda.manual_seed_all(seed)
+     np.random.seed(seed)
+     random.seed(seed)
+     torch.backends.cudnn.deterministic = True
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -313,6 +322,8 @@ if __name__ == "__main__":
     parser.add_argument('--T', type=float, default=0.6, help='temperature')
     parser.add_argument('--P', type=float, default=0.9, help='top_p')
     parser.add_argument('--cudagraph', action='store_true')
+    parser.add_argument('--seed', type=int, default=17, help='random seed')
+    parser.add_argument('--Mode', type=str, default="spec", help='tree mode')
     args = parser.parse_args()
-
+    setup_seed(args.seed)
     main(args)
