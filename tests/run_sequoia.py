@@ -276,7 +276,7 @@ def main(args):
         num_samples = max(branch_lists[i])
         sampling_callables[i] = cuda_graph_for_sampling_without_replacement(
             max_length=args.M, idx_len=idx_len, num_samples=num_samples,
-            temperature=args.T, tree_size=tree_size) 
+            temperature=args.T, tree_size=tree_size, dim=args.vocab) 
     for i in range(draft_step - 1):
         ith_gather_list = []
         max_num_samples = max(branch_lists[i])
