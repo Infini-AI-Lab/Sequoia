@@ -76,11 +76,14 @@ def simulation_fast(target_model : GraphInferenceEngineTG, draft_model: GraphInf
     new_tokens_buffer =  None
     parents_buffer =  None
     position_ids = torch.zeros(max_length).long().to('cuda:0')
-    
+    data_id = 0
     with torch.no_grad():
         for step, batch in tqdm(enumerate(prompts), total=num_eval_steps):
             batch = "[INST]" + batch + "[/INST]" + "\n\nASSISTANT:"
             input_ids = tokenizer(batch, return_tensors="pt").input_ids.to('cuda:0')
+            if input_ids.shape[1] > 200:
+                continue
+            data_id  = data_id + 1
             input_text = (
                     tokenizer.decode(
                     input_ids[0],
@@ -147,8 +150,8 @@ def simulation_fast(target_model : GraphInferenceEngineTG, draft_model: GraphInf
             draft_model.clear_kv()
             target_model.clear_kv()
             if num_large_model_steps > 0:
-                print("total time :{:.5f}s, latency :{:.5f}s, decoding step: {}, large model step: {}, {}".format(total_time, total_time / num_decoding_steps, num_decoding_steps, num_large_model_steps, num_decoding_steps / num_large_model_steps), flush=True)
-    print("total time :{:.5f}s, latency :{:.5f}s, decoding step: {}, large model step: {}, {}".format(total_time, total_time / num_decoding_steps, num_decoding_steps, num_large_model_steps, num_decoding_steps / num_large_model_steps))
+                print("Data ID: {} total time :{:.5f}s, latency :{:.5f}s, decoding step: {}, large model step: {}, {}".format(data_id, total_time, total_time / num_decoding_steps, num_decoding_steps, num_large_model_steps, num_decoding_steps / num_large_model_steps), flush=True)
+    print("Data ID: {} total time :{:.5f}s, latency :{:.5f}s, decoding step: {}, large model step: {}, {}".format(data_id, total_time, total_time / num_decoding_steps, num_decoding_steps, num_large_model_steps, num_decoding_steps / num_large_model_steps), flush=True)
     return num_decoding_steps / num_large_model_steps
 
 def simulation_baseline(target_model : GraphInferenceEngineTG, draft_model: GraphInferenceEngine, prompts :list[str], tokenizer: AutoTokenizer,T=0.6, top_p=0.9,
