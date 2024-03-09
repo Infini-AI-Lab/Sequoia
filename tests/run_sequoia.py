@@ -243,7 +243,7 @@ def simulation_baseline(target_model : GraphInferenceEngineTG, draft_model: Grap
     print("total time :{:.5f}s, latency :{:.5f}s, decoding step: {}".format(total_time, total_time / num_decoding_steps, num_decoding_steps))
     return num_decoding_steps / num_large_model_steps
 def main(args):
-    tokenizer = AutoTokenizer.from_pretrained(args.model, use_fast=False)
+    tokenizer = AutoTokenizer.from_pretrained(args.model, use_fast=False, trust_remote_code=True)
     tokenizer.pad_token = tokenizer.eos_token
 
     target_model = OffloadEngine(max_length=args.M, model_name_or_path = args.target, dtype = torch.float16, device="cuda:0", stay_layers=args.staylayer)
