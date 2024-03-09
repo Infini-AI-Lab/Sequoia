@@ -420,12 +420,13 @@ class OffloadEngine:
         max_length:int,
         model_name_or_path :str,
         dtype = torch.float16,
-        device = "cuda:0") -> None:
+        device = "cuda:0",
+        stay_layers = 0)-> None:
 
         self.device = device
         self.dtype = dtype
         self.max_length = max_length
-        self.engine = Llama(model_name=model_name_or_path, max_length=max_length, device=device, dtype=dtype)
+        self.engine = Llama(model_name=model_name_or_path, max_length=max_length, device=device, dtype=dtype, stay_layers=stay_layers)
     def clear_kv(self):
         self.engine.kv_cache.clear()
     

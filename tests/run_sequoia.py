@@ -246,7 +246,7 @@ def main(args):
     tokenizer = AutoTokenizer.from_pretrained(args.model, use_fast=False)
     tokenizer.pad_token = tokenizer.eos_token
 
-    target_model = OffloadEngine(max_length=args.M, model_name_or_path = args.target, dtype = torch.float16, device="cuda:0")
+    target_model = OffloadEngine(max_length=args.M, model_name_or_path = args.target, dtype = torch.float16, device="cuda:0", stay_layers=args.staylayer)
     
     draft_model = GraphInferenceEngine(max_length=args.M, model_name_or_path = args.model, dtype = torch.float16, device="cuda:0")
     
@@ -327,6 +327,7 @@ if __name__ == "__main__":
     parser.add_argument('--cudagraph', action='store_true')
     parser.add_argument('--seed', type=int, default=17, help='random seed')
     parser.add_argument('--Mode', type=str, default="spec", help='tree mode')
+    parser.add_argument('--staylayer', type=int, default=0, help='layers on chip')
     args = parser.parse_args()
     setup_seed(args.seed)
     main(args)
