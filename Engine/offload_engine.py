@@ -261,7 +261,7 @@ class Llama:
         max_length :int = 256, 
         device :str = 'cuda:0',
         dtype = torch.float16,
-        stay_layers = 0) -> None:
+        stay_layers = 7) -> None:
         
         self.device = device
         self.dtype = dtype
@@ -391,18 +391,16 @@ class Llama:
             attention_mask: torch.FloatTensor):
         
         hidden_states = F.embedding(input_ids, self.embed_tokens)
-        with torch.cuda.stream(self.load_stream):
-            for idx in range(self.stay_layers):
-                    hidden_states = self.layer_compute(self.layers[idx], idx, hidden_states, position_ids, attention_mask)
-            self.buffer[0].sync_copy(self.layers[self.stay_layers])
+       
+        self.buffer[0].sync_copy(self.layers[0])
         
 
         torch.cuda.synchronize()
-        for idx in range(self.stay_layers, self.num_layers):
+        for idx in range(self.num_layers):
             with torch.cuda.stream(self.load_stream):
-                hidden_states = self.layer_compute(self.buffer[(idx - self.stay_layers) % 2], idx, hidden_states, position_ids, attention_mask)
+                hidden_states = self.layer_compute(self.buffer[(idx) % 2], idx, hidden_states, position_ids, attention_mask)
             if idx != self.num_layers - 1:
-                    self.buffer[(idx + 1 - self.stay_layers) % 2].sync_copy(self.layers[idx + 1])
+                    self.buffer[(idx + 1) % 2].sync_copy(self.layers[idx + 1])
             torch.cuda.synchronize()
 
         
@@ -469,9 +467,9 @@ if __name__ == "__main__":
         ]
     ]).cuda()
 
-    attention_mask = _make_causal_mask((1,8), torch.float16, device="cuda:0")
+    attention_mask = _make_causal_mask((1,9), torch.float16, device="cuda:0")
 
-    logits = llm.inference(input_ids=input_ids, position_ids=position_ids, attn_mask=attention_mask[:-1, : -1][None, None, :, :], storage_ids=None)
+    logits = llm.inference(input_ids=input_ids, position_ids=position_ids, attn_mask=attention_mask[:-2, : -2][None, None, :, :], storage_ids=None)
     print(logits)
     new_input_ids = torch.LongTensor([
         [
@@ -482,6 +480,21 @@ if __name__ == "__main__":
     new_position_ids = torch.LongTensor([
         [
             7
+        ]
+    ]).cuda()
+
+    logits = llm.inference(input_ids=new_input_ids, position_ids=new_position_ids, attn_mask=attention_mask[-2:-1, :-1][None, None, :, :], storage_ids=None)
+    print(logits)
+
+    new_input_ids = torch.LongTensor([
+        [
+            1488
+        ]
+    ]).cuda()
+
+    new_position_ids = torch.LongTensor([
+        [
+            8
         ]
     ]).cuda()
 
