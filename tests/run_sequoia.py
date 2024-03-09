@@ -236,7 +236,6 @@ def simulation_baseline(target_model : GraphInferenceEngineTG, draft_model: Grap
             torch.cuda.synchronize()
             t2 = time.time()
             total_time += (t2 - t1)
-            draft_model.clear_kv()
             target_model.clear_kv()
             if num_decoding_steps > 0:
                 print("total time :{:.5f}s, latency :{:.5f}s, decoding step: {}".format(total_time, total_time / num_decoding_steps, num_decoding_steps), flush=True)
@@ -247,45 +246,41 @@ def main(args):
     tokenizer.pad_token = tokenizer.eos_token
 
     target_model = OffloadEngine(max_length=args.M, model_name_or_path = args.target, dtype = torch.float16, device="cuda:0", stay_layers=args.staylayer)
-    
-    draft_model = GraphInferenceEngine(max_length=args.M, model_name_or_path = args.model, dtype = torch.float16, device="cuda:0")
-    
-    
-    
-    
-    residual_graph = cuda_graph_for_residual(dim=args.vocab)
-    path = args.growmap
-    grow_map = torch.load(path)
-    tree_size = grow_map["size"]
-    print(tree_size)
-    idx_lists = grow_map["roots"]
+    if args.Mode == 'spec':
+        draft_model = GraphInferenceEngine(max_length=args.M, model_name_or_path = args.model, dtype = torch.float16, device="cuda:0")
+        residual_graph = cuda_graph_for_residual(dim=args.vocab)
+        path = args.growmap
+        grow_map = torch.load(path)
+        tree_size = grow_map["size"]
+        print(tree_size)
+        idx_lists = grow_map["roots"]
 
-    branch_lists = grow_map['branches']
-    draft_step = len(grow_map["roots"])
-    
-    if args.cudagraph:
-        graph_capture_list = [sum(x) for x in branch_lists]
+        branch_lists = grow_map['branches']
+        draft_step = len(grow_map["roots"])
         
-        graph_capture_list.append(1)
-        draft_model.initialize_cuda_graph(graph_capture_list)
+        if args.cudagraph:
+            graph_capture_list = [sum(x) for x in branch_lists]
+            
+            graph_capture_list.append(1)
+            draft_model.initialize_cuda_graph(graph_capture_list)
 
-    sampling_callables = {}
-    sample_gather_indices = {}
-    for i in range(draft_step - 1):
-        idx_len = len(idx_lists[i])
-        num_samples = max(branch_lists[i])
-        sampling_callables[i] = cuda_graph_for_sampling_without_replacement(
-            max_length=args.M, idx_len=idx_len, num_samples=num_samples,
-            temperature=args.T, tree_size=tree_size, dim=args.vocab) 
-    for i in range(draft_step - 1):
-        ith_gather_list = []
-        max_num_samples = max(branch_lists[i])
-        for j, branch in enumerate(branch_lists[i]):
-            branch_index = torch.arange(branch, device="cuda:0", dtype=torch.long)
-            branch_index = branch_index + j * max_num_samples
-            ith_gather_list.append(branch_index)
-        ith_gather_list = torch.cat(ith_gather_list)
-        sample_gather_indices[i] = ith_gather_list
+        sampling_callables = {}
+        sample_gather_indices = {}
+        for i in range(draft_step - 1):
+            idx_len = len(idx_lists[i])
+            num_samples = max(branch_lists[i])
+            sampling_callables[i] = cuda_graph_for_sampling_without_replacement(
+                max_length=args.M, idx_len=idx_len, num_samples=num_samples,
+                temperature=args.T, tree_size=tree_size, dim=args.vocab) 
+        for i in range(draft_step - 1):
+            ith_gather_list = []
+            max_num_samples = max(branch_lists[i])
+            for j, branch in enumerate(branch_lists[i]):
+                branch_index = torch.arange(branch, device="cuda:0", dtype=torch.long)
+                branch_index = branch_index + j * max_num_samples
+                ith_gather_list.append(branch_index)
+            ith_gather_list = torch.cat(ith_gather_list)
+            sample_gather_indices[i] = ith_gather_list
     
     test_filepath = os.path.join(args.data_root, "mt_bench.jsonl")
     print(f"Loading data from {test_filepath} ...")
@@ -305,8 +300,8 @@ def main(args):
         simulation_fast(target_model=target_model, draft_model=draft_model, prompts=prompts,tokenizer=tokenizer, T=args.T, top_p=args.P,
                                         max_length=args.M, residual_graph = residual_graph, grow_map = grow_map, sampling_callables=sampling_callables, sample_gather_indices = sample_gather_indices, vocab_size=args.vocab)
     else:
-        simulation_baseline(target_model=target_model, draft_model=draft_model, prompts=prompts[:4],tokenizer=tokenizer, T=args.T, top_p=args.P,
-                                        max_length=args.M, residual_graph = residual_graph, grow_map = grow_map, sampling_callables=sampling_callables, sample_gather_indices = sample_gather_indices, vocab_size=args.vocab)
+        simulation_baseline(target_model=target_model, draft_model=None, prompts=prompts[:4],tokenizer=tokenizer, T=args.T, top_p=args.P,
+                                        max_length=args.M, residual_graph = None, grow_map = None, sampling_callables=None, sample_gather_indices = None, vocab_size=args.vocab)
     
 def setup_seed(seed):
      torch.manual_seed(seed)
