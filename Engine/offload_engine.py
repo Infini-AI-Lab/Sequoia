@@ -213,6 +213,18 @@ class LlamaLayer:
         self.input_layernorm_weight = self.input_layernorm_weight.to(device)
         self.post_attention_layernorm_weight = self.post_attention_layernorm_weight.to(device)
 
+    def to_gpu(self, device:str = 'cuda:0'):
+
+        self.wq = self.wq.to(device)
+        self.wk = self.wk.to(device)
+        self.wv = self.wv.to(device)
+        self.wo = self.wo.to(device)
+        self.gate_proj = self.gate_proj.to(device)
+        self.up_proj = self.up_proj.to(device)
+        self.down_proj =  self.down_proj.to(device)
+
+
+
 
 
 class LlamaLayerBuffer:
@@ -221,34 +233,35 @@ class LlamaLayerBuffer:
     
     def init_space(self, layer: LlamaLayer):
 
-        self.wq_buffer = torch.zeros_like(layer.wq).to(self.device)
-        self.wk_buffer = torch.zeros_like(layer.wk).to(self.device)
-        self.wv_buffer = torch.zeros_like(layer.wv).to(self.device)
-        self.wo_buffer = torch.zeros_like(layer.wo).to(self.device)
+        self.wq = torch.zeros_like(layer.wq).to(self.device)
+        self.wk = torch.zeros_like(layer.wk).to(self.device)
+        self.wv = torch.zeros_like(layer.wv).to(self.device)
+        self.wo = torch.zeros_like(layer.wo).to(self.device)
 
 
-        self.gate_proj_buffer = torch.zeros_like(layer.gate_proj).to(self.device)
-        self.up_proj_buffer = torch.zeros_like(layer.up_proj).to(self.device)
-        self.down_proj_buffer = torch.zeros_like(layer.down_proj).to(self.device)
+        self.gate_proj = torch.zeros_like(layer.gate_proj).to(self.device)
+        self.up_proj = torch.zeros_like(layer.up_proj).to(self.device)
+        self.down_proj = torch.zeros_like(layer.down_proj).to(self.device)
 
         
     def sync_copy(self, layer: LlamaLayer):
 
-        self.wq_buffer.copy_(layer.wq, non_blocking=True)
-        self.wk_buffer.copy_(layer.wk, non_blocking=True)
-        self.wv_buffer.copy_(layer.wv, non_blocking=True)
-        self.wo_buffer.copy_(layer.wo, non_blocking=True)
+        self.wq.copy_(layer.wq, non_blocking=True)
+        self.wk.copy_(layer.wk, non_blocking=True)
+        self.wv.copy_(layer.wv, non_blocking=True)
+        self.wo.copy_(layer.wo, non_blocking=True)
 
-        self.gate_proj_buffer.copy_(layer.gate_proj, non_blocking=True)
-        self.up_proj_buffer.copy_(layer.up_proj, non_blocking=True)
-        self.down_proj_buffer.copy_(layer.down_proj, non_blocking=True)
+        self.gate_proj.copy_(layer.gate_proj, non_blocking=True)
+        self.up_proj.copy_(layer.up_proj, non_blocking=True)
+        self.down_proj.copy_(layer.down_proj, non_blocking=True)
 
 class Llama:
     def __init__(self, 
         model_name: str,
         max_length :int = 256, 
         device :str = 'cuda:0',
-        dtype = torch.float16) -> None:
+        dtype = torch.float16,
+        stay_layers = 0) -> None:
         
         self.device = device
         self.dtype = dtype
@@ -256,7 +269,7 @@ class Llama:
         self.model_name = model_name
         self.max_length = max_length
         self.kv_cache = Offload_KV_Cache(self.config, max_length=max_length, device=device, dtype=dtype)
-        
+        self.stay_layers = stay_layers
         self.init_parameters()
         self.hidden_size = self.config.hidden_size
         self.num_heads = self.config.num_attention_heads
@@ -283,18 +296,21 @@ class Llama:
             layer = LlamaLayer(idx)
             layer.init_parameters(hf_layer=hf_layer)
             layer.init_gpu(self.device)
+            if idx < self.stay_layers:
+                layer.to_gpu(self.device)
             self.layers.append(layer)
             hf_model.model.layers[idx] = None
             gc.collect()
             
         self.num_layers = len(self.layers)
+        assert self.stay_layers <= (self.num_layers - 2)
         self.buffer = [LlamaLayerBuffer(self.device) for _ in range(2)]
         self.buffer[0].init_space(self.layers[0])
         self.buffer[1].init_space(self.layers[0])
 
 
     def layer_compute(self, 
-            buffer: LlamaLayerBuffer,
+            buffer: Union[LlamaLayerBuffer, LlamaLayer],
             layer_idx :int, 
             hidden_states: torch.FloatTensor, 
             position_ids: torch.LongTensor, 
@@ -311,9 +327,9 @@ class Llama:
         
         bsz, q_len, _ = hidden_states.size()
 
-        query_states = F.linear(hidden_states, buffer.wq_buffer)
-        key_states = F.linear(hidden_states, buffer.wk_buffer)
-        value_states = F.linear(hidden_states, buffer.wv_buffer)
+        query_states = F.linear(hidden_states, buffer.wq)
+        key_states = F.linear(hidden_states, buffer.wk)
+        value_states = F.linear(hidden_states, buffer.wv)
 
         query_states = query_states.view(bsz, q_len, self.num_heads, self.head_dim).transpose(1, 2)
         key_states = key_states.view(bsz, q_len, self.num_key_value_heads, self.head_dim).transpose(1, 2)
@@ -346,7 +362,7 @@ class Llama:
         attn_output = torch.matmul(attn_weights, value_states)
         attn_output = attn_output.transpose(1, 2).contiguous()
         attn_output = attn_output.reshape(bsz, q_len, self.hidden_size)
-        hidden_states = F.linear(attn_output, buffer.wo_buffer)
+        hidden_states = F.linear(attn_output, buffer.wo)
         
         hidden_states = residual + hidden_states
 
@@ -359,11 +375,11 @@ class Llama:
         
         hidden_states = self.layers[layer_idx].post_attention_layernorm_weight * hidden_states.to(input_dtype)
         
-        up = F.linear(hidden_states, buffer.up_proj_buffer)
-        gate = F.linear(hidden_states, buffer.gate_proj_buffer)
+        up = F.linear(hidden_states, buffer.up_proj)
+        gate = F.linear(hidden_states, buffer.gate_proj)
         gate = F.silu(gate)
         hidden_states = gate * up
-        hidden_states = F.linear(hidden_states, buffer.down_proj_buffer)
+        hidden_states = F.linear(hidden_states, buffer.down_proj)
         hidden_states = residual + hidden_states
         return hidden_states
 
@@ -375,13 +391,18 @@ class Llama:
             attention_mask: torch.FloatTensor):
         
         hidden_states = F.embedding(input_ids, self.embed_tokens)
-        self.buffer[0].sync_copy(self.layers[0])
+        with torch.cuda.stream(self.load_stream):
+            for idx in range(self.stay_layers):
+                    hidden_states = self.layer_compute(self.layers[idx], idx, hidden_states, position_ids, attention_mask)
+            self.buffer[0].sync_copy(self.layers[self.stay_layers])
+        
+
         torch.cuda.synchronize()
-        for idx in range(self.num_layers):
+        for idx in range(self.stay_layers, self.num_layers):
             with torch.cuda.stream(self.load_stream):
-                hidden_states = self.layer_compute(self.buffer[idx % 2], idx, hidden_states, position_ids, attention_mask)
-                if idx != self.num_layers - 1:
-                    self.buffer[(idx + 1) % 2].sync_copy(self.layers[idx + 1])
+                hidden_states = self.layer_compute(self.buffer[(idx - self.stay_layers) % 2], idx, hidden_states, position_ids, attention_mask)
+            if idx != self.num_layers - 1:
+                    self.buffer[(idx + 1 - self.stay_layers) % 2].sync_copy(self.layers[idx + 1])
             torch.cuda.synchronize()
 
         
