@@ -299,7 +299,7 @@ def main(args):
         simulation_fast(target_model=target_model, draft_model=draft_model, prompts=prompts[:4],tokenizer=tokenizer, T=args.T, top_p=args.P,
                                         max_length=args.M, residual_graph = residual_graph, grow_map = grow_map, sampling_callables=sampling_callables, sample_gather_indices = sample_gather_indices, vocab_size=args.vocab)
     else:
-        simulation_baseline(target_model=target_model, draft_model=None, prompts=prompts[:100],tokenizer=tokenizer, T=args.T, top_p=args.P,
+        simulation_baseline(target_model=target_model, draft_model=None, prompts=prompts,tokenizer=tokenizer, T=args.T, top_p=args.P,
                                         max_length=args.M, residual_graph = None, grow_map = None, sampling_callables=None, sample_gather_indices = None, vocab_size=args.vocab)
     
 def setup_seed(seed):
