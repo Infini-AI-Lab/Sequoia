@@ -194,7 +194,7 @@ def simulation_baseline(target_model : GraphInferenceEngineTG, draft_model: Grap
             start_length = 0
             pos = 0
             generated_ids = []
-            while inner_decoding_step < initial_len + 256 and terminate == False:
+            while inner_decoding_step + initial_len < 256 and terminate == False:
                 if inner_decoding_step == 0:
                     start_length = input_ids.shape[1]
                     logits = target_model.inference(input_ids = input_ids, storage_ids=storage_ids[:start_length],
@@ -239,8 +239,7 @@ def simulation_baseline(target_model : GraphInferenceEngineTG, draft_model: Grap
             target_model.clear_kv()
             if num_decoding_steps > 0:
                 print("total time :{:.5f}s, latency :{:.5f}s, decoding step: {}".format(total_time, total_time / num_decoding_steps, num_decoding_steps), flush=True)
-    print("total time :{:.5f}s, latency :{:.5f}s, decoding step: {}".format(total_time, total_time / num_decoding_steps, num_decoding_steps))
-    return num_decoding_steps / num_large_model_steps
+    return num_decoding_steps
 def main(args):
     tokenizer = AutoTokenizer.from_pretrained(args.target, use_fast=False)
     tokenizer.pad_token = tokenizer.eos_token
@@ -297,7 +296,7 @@ def main(args):
     for sample in list_data:
         prompts.append(sample["turns"][0])
     if args.Mode == 'spec':
-        simulation_fast(target_model=target_model, draft_model=draft_model, prompts=prompts,tokenizer=tokenizer, T=args.T, top_p=args.P,
+        simulation_fast(target_model=target_model, draft_model=draft_model, prompts=prompts[:4],tokenizer=tokenizer, T=args.T, top_p=args.P,
                                         max_length=args.M, residual_graph = residual_graph, grow_map = grow_map, sampling_callables=sampling_callables, sample_gather_indices = sample_gather_indices, vocab_size=args.vocab)
     else:
         simulation_baseline(target_model=target_model, draft_model=None, prompts=prompts[:4],tokenizer=tokenizer, T=args.T, top_p=args.P,
