@@ -296,7 +296,7 @@ def main(args):
     for sample in list_data:
         prompts.append(sample["turns"][0])
     if args.Mode == 'spec':
-        simulation_fast(target_model=target_model, draft_model=draft_model, prompts=prompts,tokenizer=tokenizer, T=args.T, top_p=args.P,
+        simulation_fast(target_model=target_model, draft_model=draft_model, prompts=prompts[:4],tokenizer=tokenizer, T=args.T, top_p=args.P,
                                         max_length=args.M, residual_graph = residual_graph, grow_map = grow_map, sampling_callables=sampling_callables, sample_gather_indices = sample_gather_indices, vocab_size=args.vocab)
     else:
         simulation_baseline(target_model=target_model, draft_model=None, prompts=prompts[:4],tokenizer=tokenizer, T=args.T, top_p=args.P,
