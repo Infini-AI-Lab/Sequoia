@@ -68,7 +68,10 @@ We use the following command
 
 We can modify the content of demo-config.json to generate different growmaps. The growmaps for experiments in the paper in prepared in `L40_growmaps` and `A100_growmaps`. 
 
-
+## TODOs
+- [ ] Support multi-round dialogue.
+- [ ] Support INT4/8 quantization.
+- [ ] Support multi-GPU. 
 ## Citation
 
 If you find Sequoia useful or relevant to your project and research, please kindly cite our paper:
