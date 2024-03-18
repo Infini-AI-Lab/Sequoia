@@ -29,9 +29,9 @@ A command should be in the format like
 
 `testbed.py` is for stochastic decoding. `testbed_greedy.py` is for greedy decoding. `test_specinfer.py` is for specinfer sampling. `test_greedyS.py` is for Top-k/greedy sampling. `test_accept.py` is for preparing the accepting rate vector.
 
-`--model` specifies the draft and `--target` spefifies the target. Currently, only Llama models are supported (including Llama2, Sheared-LLaMA, Vicuna and TinyLlama).
+`--model` specifies the draft and `--target` specifies the target. Currently, only Llama models are supported (including Llama2, Sheared-LLaMA, Vicuna and TinyLlama).
 
-`--T` specifies the temperature and `--P` spefifies the top-p for generation. 
+`--T` specifies the temperature and `--P` specifies the top-p for generation. 
 
 `--dataset` should be in `cnn, openwebtext, c4`.  `--start` and `--end` decides how many examples will be evaluated. `--seed` is for adjusting random seeds. To precisely reproduce the results, seed is set to be 17 by default.
 
