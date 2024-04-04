@@ -10,7 +10,7 @@ require_version("datasets>=1.8.0", "To fix: pip install -r examples/pytorch/tran
 
 
 def convert_wiki_dataset(tokenizer, seq_len = 256):
-    dataset = load_dataset("wikimedia/wikipedia", "20231101.en", split="train[0:2000]")
+    dataset = load_dataset("wikitext", "wikitext-2-raw-v1", split="train")
     def tokenize_function(examples):
             return tokenizer(examples["text"], return_tensors='pt',max_length=seq_len,padding=True,truncation=True)
     dataset = dataset.map(tokenize_function, batched=True, remove_columns=['text'])
@@ -18,7 +18,10 @@ def convert_wiki_dataset(tokenizer, seq_len = 256):
     return dataset
 
 def convert_cnn_dataset(tokenizer, seq_len = 256):
-    dataset = load_dataset("cnn_dailymail", "1.0.0", split="test[0:2000]")
+    dataset = load_dataset(
+        path="cnn_dailymail", 
+        data_files={"test": "1.0.0/test-00000-of-00001.parquet"}, 
+        split="test[0:2000]",)
     def tokenize_function(examples):
             return tokenizer(examples["article"], return_tensors='pt',max_length=seq_len,padding=True,truncation=True)
     dataset = dataset.map(tokenize_function, batched=True, remove_columns=['article'])
@@ -26,7 +29,7 @@ def convert_cnn_dataset(tokenizer, seq_len = 256):
     return dataset
 
 def convert_c4_dataset_eval(tokenizer, seq_len = 256):
-    dataset = load_dataset("c4", "en", split="validation[0:2000]")
+    dataset = load_dataset("allenai/c4", "allenai--c4", data_files={"train": "en/c4-train.00000-of-01024.json.gz"}, split="train")
     def tokenize_function(examples):
             return tokenizer(examples["text"], return_tensors='pt',max_length=seq_len,padding=True,truncation=True)
     dataset = dataset.map(tokenize_function, batched=True, remove_columns=['text', 'timestamp', 'url'])
