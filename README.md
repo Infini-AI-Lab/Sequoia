@@ -44,6 +44,8 @@ A command should be in the format like
     --start 0 --end 100 --Mode greedy  --M 1024 \
     --growmap  ../L40_growmaps/L40-CNN-7b-70b-stochastic.pt  --offloading --dataset cnn
 
+All experiments in test have the max sequence length of 256. To change this, **max_target_seq** should be passed to SpecTree. Again, `--M` should be set at least `#tree + max_target_seq`. 
+
 ## How to obtain acceptance rate vector
 To obtain the acceptance rate vector, which is used in `tree_search.py`, we need the following command
 
