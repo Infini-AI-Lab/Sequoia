@@ -123,7 +123,7 @@ def simulation_fast(target_model : GraphInferenceEngineTG, draft_model: GraphInf
                 num_large_model_steps += 1
                 input_ids = valid_tokens.unsqueeze(0)
                 
-                if (input_ids[0][-1] == 2) or (input_ids[0][-1] == 0): terminate = True
+                if (input_ids[0][-1] == 128009) or (input_ids[0][-1] == 128001): terminate = True
                 
                 generated_ids.extend(input_ids[0][input_begin_pos:].tolist())
 
