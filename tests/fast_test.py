@@ -121,10 +121,10 @@ else:
 data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
 dataloader = DataLoader(tokenized_dataset_eval, batch_size=1, collate_fn=data_collator)
 target_model = AutoModelForCausalLM.from_pretrained(args.target, 
-                                                    torch_dtype=torch.float16,
+                                                    torch_dtype=torch.bfloat16,
                                                     device_map="auto"
                                                     )
-draft_model = AutoModelForCausalLM.from_pretrained(args.model, device_map="cuda:0", torch_dtype=torch.float16)
+draft_model = AutoModelForCausalLM.from_pretrained(args.model, device_map="cuda:0", torch_dtype=torch.bfloat16)
 accelerator = Accelerator()
 dataloader = accelerator.prepare(dataloader)
 
