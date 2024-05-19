@@ -70,7 +70,7 @@ def simulation_fast(target_model : GraphInferenceEngineTG, draft_model: GraphInf
     num_decoding_steps = 0
     num_large_model_steps = 0
     total_time = 0.0
-    dtype = torch.float16
+    dtype = torch.bfloat16
     attn_mask = torch.full((max_length, max_length), torch.finfo(dtype).min, dtype=dtype, device='cuda:0')
     sequence = torch.tensor(list(range(max_length)), device='cuda:0').long().unsqueeze(-1)
     new_tokens_buffer =  None
@@ -162,7 +162,7 @@ def simulation_baseline(target_model : GraphInferenceEngineTG, draft_model: Grap
     num_decoding_steps = 0
     num_large_model_steps = 0
     total_time = 0.0
-    dtype = torch.float16
+    dtype = torch.bfloat16
     attn_mask = torch.full((max_length, max_length), torch.finfo(dtype).min, dtype=dtype, device='cuda:0')
     
     position_ids = torch.zeros(max_length).long().to('cuda:0')
@@ -244,9 +244,9 @@ def main(args):
     tokenizer = AutoTokenizer.from_pretrained(args.target, use_fast=False)
     tokenizer.pad_token = tokenizer.eos_token
 
-    target_model = OffloadEngine(max_length=args.M, model_name_or_path = args.target, dtype = torch.float16, device="cuda:0", stay_layers=args.staylayer)
+    target_model = OffloadEngine(max_length=args.M, model_name_or_path = args.target, dtype = torch.bfloat16, device="cuda:0", stay_layers=args.staylayer)
     if args.Mode == 'spec':
-        draft_model = GraphInferenceEngine(max_length=args.M, model_name_or_path = args.model, dtype = torch.float16, device="cuda:0")
+        draft_model = GraphInferenceEngine(max_length=args.M, model_name_or_path = args.model, dtype = torch.bfloat16, device="cuda:0")
         residual_graph = cuda_graph_for_residual(dim=args.vocab)
         path = args.growmap
         grow_map = torch.load(path)
