@@ -26,7 +26,7 @@ def convert_cnn_dataset(tokenizer, seq_len = 256):
     return dataset
 
 def convert_c4_dataset_eval(tokenizer, seq_len = 256):
-    dataset = load_dataset("c4", "en", split="validation[0:2000]")
+    dataset = load_dataset('allenai/c4', data_files={'validation': 'en/c4-validation.00000-of-00008.json.gz'}, split='validation[:2000]')
     def tokenize_function(examples):
             return tokenizer(examples["text"], return_tensors='pt',max_length=seq_len,padding=True,truncation=True)
     dataset = dataset.map(tokenize_function, batched=True, remove_columns=['text', 'timestamp', 'url'])
