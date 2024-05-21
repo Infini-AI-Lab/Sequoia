@@ -25,8 +25,9 @@ class SpecInferTree(Tree):
                  position_ids = None,
                  residual_graph = None,
                  sampling_callables = None,
-                 sample_gather_indices = None) -> None:
-        super().__init__(device=device, max_length=max_length)
+                 sample_gather_indices = None,
+                 dtype = torch.float16) -> None:
+        super().__init__(device=device, max_length=max_length, dtype=dtype)
         assert self.max_length == draft_model_engine.engine.max_length
         self.max_target_seq = max_target_seq
         self.draft_model_engine = draft_model_engine
