@@ -72,7 +72,7 @@ def simulation_fast(target_model : GraphInferenceEngineTG, draft_model: GraphInf
     num_decoding_steps = 0
     num_large_model_steps = 0
     total_time = 0.0
-    dtype = torch.bfloat16
+    dtype = torch.float16
     attn_mask = torch.full((max_length, max_length), torch.finfo(dtype).min, dtype=dtype, device='cuda:0')
     sequence = torch.tensor(list(range(max_length)), device='cuda:0').long().unsqueeze(-1)
     new_tokens_buffer =  None
@@ -165,7 +165,7 @@ def simulation_baseline(target_model : GraphInferenceEngineTG, draft_model: Grap
     num_decoding_steps = 0
     num_large_model_steps = 0
     total_time = 0.0
-    dtype = torch.bfloat16
+    dtype = torch.float16
     attn_mask = torch.full((max_length, max_length), torch.finfo(dtype).min, dtype=dtype, device='cuda:0')
     
     position_ids = torch.zeros(max_length).long().to('cuda:0')
@@ -249,7 +249,7 @@ def main(args):
 
     
     if args.Mode == 'spec':
-        draft_model = GraphInferenceEngine(max_length=args.M, model_name_or_path = args.model, dtype = torch.bfloat16, device="cuda:0")
+        draft_model = GraphInferenceEngine(max_length=args.M, model_name_or_path = args.model, dtype = torch.float16, device="cuda:0")
         residual_graph = None
         path = args.growmap
         grow_map = torch.load(path)
@@ -273,7 +273,7 @@ def main(args):
             num_samples = max(branch_lists[i])
             sampling_callables[i] = cuda_graph_for_sampling_argmax(
                 max_length=args.M, idx_len=idx_len, num_samples=num_samples,
-                temperature=args.T, tree_size=tree_size, dim=args.vocab, dtype=torch.bfloat16) 
+                temperature=args.T, tree_size=tree_size, dim=args.vocab, dtype=torch.float16) 
         for i in range(draft_step - 1):
             ith_gather_list = []
             max_num_samples = max(branch_lists[i])
@@ -284,7 +284,7 @@ def main(args):
             ith_gather_list = torch.cat(ith_gather_list)
             sample_gather_indices[i] = ith_gather_list
     
-    target_model = OffloadEngine(max_length=args.M, model_name_or_path = args.target, dtype = torch.bfloat16, device="cuda:0", stay_layers=args.staylayer)
+    target_model = OffloadEngine(max_length=args.M, model_name_or_path = args.target, dtype = torch.float16, device="cuda:0", stay_layers=args.staylayer)
     test_filepath = os.path.join(args.data_root, "mt_bench.jsonl")
     print(f"Loading data from {test_filepath} ...")
 
