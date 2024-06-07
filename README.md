@@ -1,4 +1,6 @@
 # Sequoia: Scalable, Robust, and Hardware-aware Speculative Decoding
+
+Repo In refactoring ... (will finish before end of June)
 [[paper](https://arxiv.org/abs/2402.12374)]
 ## Environment Set Up
 We recommend the following commands to set up the environment
