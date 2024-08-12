@@ -9,7 +9,7 @@ from tqdm import tqdm
 from torch.nn.functional import softmax
 from accelerate import Accelerator
 import argparse
-from data_converter import convert_wiki_dataset, convert_cnn_dataset, convert_c4_dataset_eval
+from data_converter import convert_wiki_dataset, convert_cnn_dataset, convert_c4_dataset_eval, convert_wikimqa_dataset
 import argparse
 from Tree.SpecTree import SpecTree
 import time
@@ -68,7 +68,7 @@ def simulation_fast(target_model : GraphInferenceEngineTG, draft_model: GraphInf
             spectree = SpecTree(prefix=input_ids.squeeze(0), device='cuda:0', temperature=T,
                                     top_p=top_p,
                                     draft_kv_len=draft_kv_len, target_kv_len=target_kv_len,
-                                    draft_model_engine=draft_model, target_model_engine=target_model, max_length=max_length, grow_map=grow_map,
+                                    draft_model_engine=draft_model, target_model_engine=target_model, max_length=max_length, max_target_seq=max_length, grow_map=grow_map,
                                     attn_mask = attn_mask, sequence = sequence, new_tokens_buffer = new_tokens_buffer, 
                                     parents_buffer = parents_buffer, 
                                     position_ids = position_ids,
@@ -231,6 +231,8 @@ if args.dataset == 'openwebtext':
 elif args.dataset == 'wiki':
     tokenized_dataset_eval = convert_wiki_dataset(tokenizer=tokenizer).select(eval_list[args.start :args.end])
 elif args.dataset == 'cnn':
+    tokenized_dataset_eval = convert_cnn_dataset(tokenizer=tokenizer).select(eval_list[args.start :args.end])
+elif args.dataset == 'wikimqa':
     tokenized_dataset_eval = convert_cnn_dataset(tokenizer=tokenizer).select(eval_list[args.start :args.end])
 else:
     tokenized_dataset_eval = convert_c4_dataset_eval(tokenizer=tokenizer).select(eval_list[args.start :args.end])

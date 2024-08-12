@@ -268,9 +268,7 @@ class LlamaMLP_FI(nn.Module):
         self.act_fn = ACT2FN[config.hidden_act]
 
     def forward(self, x):
-    
         down_proj = self.down_proj(self.act_fn(self.gate_proj(x)) * self.up_proj(x))
-        
         return down_proj
 
 class LlamaRMSNorm_FI(nn.Module):
@@ -325,7 +323,7 @@ class LlamaDecoderLayer_FI(nn.Module):
             past_key_value (`Tuple(torch.FloatTensor)`, *optional*): cached past key and value projection states
         """
         
-        
+
         residual = hidden_states
 
         hidden_states = self.input_layernorm(hidden_states)

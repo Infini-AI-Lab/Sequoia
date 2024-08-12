@@ -25,6 +25,22 @@ def convert_cnn_dataset(tokenizer, seq_len = 256):
     dataset.set_format(type='torch', columns=['input_ids', 'attention_mask'])
     return dataset
 
+def convert_wikimqa_dataset(tokenizer, seq_len = 256):
+    dataset = load_dataset('THUDM/LongBench', "2wikimqa_e", split='test')
+    def tokenize_function(examples):
+            content = examples["context"] 
+            return tokenizer(content, return_tensors='pt',max_length=seq_len,padding="max_length",truncation=True)
+    dataset = dataset.map(tokenize_function, batched=True, remove_columns=['context', 'input', 'answers', 'length', 'dataset', 'language', 'all_classes', '_id'])
+    dataset.set_format(type='torch', columns=['input_ids', 'attention_mask'])
+    return dataset
+def convert_qasper_dataset(tokenizer, seq_len = 256):
+    dataset = load_dataset('THUDM/LongBench', "qasper_e", split='test')
+    def tokenize_function(examples):
+            content = examples["context"] 
+            return tokenizer(content, return_tensors='pt',max_length=seq_len,padding="max_length",truncation=True)
+    dataset = dataset.map(tokenize_function, batched=True, remove_columns=['context', 'input', 'answers', 'length', 'dataset', 'language', 'all_classes', '_id'])
+    dataset.set_format(type='torch', columns=['input_ids', 'attention_mask'])
+    return dataset
 def convert_c4_dataset_eval(tokenizer, seq_len = 256):
     dataset = load_dataset('allenai/c4', data_files={'validation': 'en/c4-validation.00000-of-00008.json.gz'}, split='validation[:2000]')
     def tokenize_function(examples):

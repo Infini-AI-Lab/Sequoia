@@ -68,7 +68,7 @@ class LlamaModel_FI(LlamaPreTrainedModel):
             hidden_states = layer_outputs
             
         hidden_states = self.norm(hidden_states)
-       
+
         return hidden_states
 
 class LlamaModel_TG(LlamaPreTrainedModel):
@@ -296,4 +296,5 @@ class LlamaForCausalLM_TG(LlamaPreTrainedModel):
         hidden_states = outputs
        
         logits = self.lm_head(hidden_states)
+        
         return logits

@@ -8,7 +8,7 @@ from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
 from accelerate import Accelerator
 import argparse
-from data_converter import convert_wiki_dataset, convert_cnn_dataset, convert_c4_dataset_eval
+from data_converter import convert_wiki_dataset, convert_cnn_dataset, convert_c4_dataset_eval, convert_wikimqa_dataset,convert_qasper_dataset
 import argparse
 from Tree.GreedyTree import GreedyTree
 import time
@@ -27,6 +27,7 @@ parser.add_argument('--T', type=float, default=0.6, help='temperature')
 parser.add_argument('--P', type=float, default=0.9, help='top_p')
 parser.add_argument('--seed', type=int, default=17, help='random seed')
 parser.add_argument('--M', type=int, default=256, help='max length')
+parser.add_argument('--S', type=int, default=128, help='prefill length')
 parser.add_argument('--Mode', type=str, default="greedy", help='tree mode')
 parser.add_argument('--offloading', action='store_true')
 args = parser.parse_args()
@@ -56,27 +57,31 @@ def simulation_fast(target_model : GraphInferenceEngineTG, draft_model: GraphInf
     
     with torch.no_grad():
         for step, batch in tqdm(enumerate(dataloader), total=num_eval_steps):
-            input_ids = batch['input_ids'][..., :128]
-            labels = batch['labels'][..., :128]
+            
+            input_ids = batch['input_ids'][..., :args.S]
+            labels = batch['labels'][..., :args.S]
             terminate = False
             if labels[0][-1] == -100: terminate = True
             draft_kv_len = 0
             target_kv_len = 0
             attn_mask.fill_(torch.finfo(dtype).min)
+
             spectree = GreedyTree(prefix=input_ids.squeeze(0), device='cuda:0', temperature=T,
                                     top_p=top_p,
                                     draft_kv_len=draft_kv_len, target_kv_len=target_kv_len,
-                                    draft_model_engine=draft_model, target_model_engine=target_model, max_length=max_length, grow_map=grow_map,
+                                    draft_model_engine=draft_model, target_model_engine=target_model, max_length=max_length, max_target_seq=max_length, grow_map=grow_map,
                                     attn_mask = attn_mask, sequence = sequence, new_tokens_buffer = new_tokens_buffer, 
                                     parents_buffer = parents_buffer, 
                                     position_ids = position_ids,
                                     residual_graph = residual_graph,
                                     sampling_callables=sampling_callables,
                                     sample_gather_indices = sample_gather_indices)
+            
             torch.cuda.synchronize()
             t1 = time.time()
-            while input_ids.shape[1] < 256 and terminate == False:
+            while input_ids.shape[1] < args.S + 128 and terminate == False:
                 spectree.construct_grow_map()
+                
                 valid_tokens, draft_kv_len, target_kv_len, terminate = spectree.verify()
                 
                 num_decoding_steps += (valid_tokens.shape[0] - input_ids.shape[1])
@@ -100,26 +105,31 @@ def simulation_baseline(target_model : GraphInferenceEngineTG, dataloader: DataL
     total_time = 0.0
     with torch.no_grad():
         for step, batch in tqdm(enumerate(dataloader), total=num_eval_steps):
-            input_ids = batch['input_ids'][..., :128]
-            labels = batch['labels'][..., :128]
+            input_ids = batch['input_ids'][..., :args.S]
+            labels = batch['labels'][..., :args.S]
             terminate = False
             if labels[0][-1] == -100: terminate = True
             position_ids = torch.arange(max_length).to('cuda:0').unsqueeze(0)
             storage_ids = torch.arange(max_length).to('cuda:0')
             attn_mask = _make_causal_mask((max_length, max_length), target_model.dtype, target_model.device)
-            torch.cuda.synchronize()
-            t1 = time.time()
+            
             inner_decoding_step = 0
             start_length = 0
-            while inner_decoding_step < 128 and terminate == False:
-                if inner_decoding_step == 0:
+            if inner_decoding_step == 0:
                     start_length = input_ids.shape[1]
                     logits = target_model.inference(input_ids = input_ids, storage_ids=storage_ids[:start_length],
                                                     position_ids = position_ids[..., :start_length], 
                                                     attn_mask=attn_mask[:start_length, :start_length][None, None, :, :])[0][-1]
+                    new_token = logits.argmax(dim=-1).reshape(1,1)
+                    input_ids = new_token
+                    inner_decoding_step += 1
+                    if input_ids[0][-1] == 2: terminate = True
+            torch.cuda.synchronize()
+            t1 = time.time()
+            while inner_decoding_step < 128 and terminate == False:
                     
-                else:
-                    logits = target_model.inference(input_ids = input_ids, storage_ids=storage_ids[start_length + inner_decoding_step-1 : start_length + inner_decoding_step],
+                
+                logits = target_model.inference(input_ids = input_ids, storage_ids=storage_ids[start_length + inner_decoding_step-1 : start_length + inner_decoding_step],
                                                     position_ids = position_ids[..., start_length + inner_decoding_step-1 : start_length + inner_decoding_step], 
                                                     attn_mask=attn_mask[start_length + inner_decoding_step-1 : start_length + inner_decoding_step, :start_length + inner_decoding_step][None, None, :, :])[0][-1]
                 
@@ -176,7 +186,7 @@ def simulation_benchmark(target_model : GraphInferenceEngineTG, draft_model: Gra
                                         residual_graph = residual_graph,
                                         sampling_callables=sampling_callables,
                                         sample_gather_indices = sample_gather_indices)
-            while input_ids.shape[1] < 256 and terminate == False:
+            while input_ids.shape[1] < args.S + 128 and terminate == False:
                 torch.cuda.synchronize()
                 t1 = time.time()
                 torch.cuda.synchronize()
@@ -217,18 +227,22 @@ def simulation_benchmark(target_model : GraphInferenceEngineTG, draft_model: Gra
 
 tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-2-7b-hf", use_fast=False)
 tokenizer.pad_token = tokenizer.eos_token
-eval_list = list(range(200, 2000))
+eval_list = list(range(0, 200))
 import random
 random.shuffle(eval_list)
 
 if args.dataset == 'openwebtext':
     tokenized_dataset_eval = load_from_disk("../dataset/openwebtext_eval").select(eval_list[args.start :args.end])
 elif args.dataset == 'wiki':
-    tokenized_dataset_eval = convert_wiki_dataset(tokenizer=tokenizer).select(eval_list[args.start :args.end])
+    tokenized_dataset_eval = convert_wiki_dataset(tokenizer=tokenizer,seq_len=args.S + 128).select(eval_list[args.start :args.end])
 elif args.dataset == 'cnn':
-    tokenized_dataset_eval = convert_cnn_dataset(tokenizer=tokenizer).select(eval_list[args.start :args.end])
+    tokenized_dataset_eval = convert_cnn_dataset(tokenizer=tokenizer,seq_len=args.S + 128).select(eval_list[args.start :args.end])
+elif args.dataset == 'wikimqa':
+    tokenized_dataset_eval = convert_wikimqa_dataset(tokenizer=tokenizer, seq_len=args.S + 128).select(eval_list[args.start :args.end])
+elif args.dataset == 'qasper':
+    tokenized_dataset_eval = convert_qasper_dataset(tokenizer=tokenizer, seq_len=args.S + 128).select(eval_list[args.start :args.end])
 else:
-    tokenized_dataset_eval = convert_c4_dataset_eval(tokenizer=tokenizer).select(eval_list[args.start :args.end])
+    tokenized_dataset_eval = convert_c4_dataset_eval(tokenizer=tokenizer, seq_len=args.S + 128).select(eval_list[args.start :args.end])
 data_collator = DataCollatorForLanguageModeling(tokenizer, mlm=False)
 dataloader = DataLoader(tokenized_dataset_eval, batch_size=1, collate_fn=data_collator, shuffle=False)
 
@@ -280,7 +294,7 @@ if args.Mode == 'benchmark':
     simulation_benchmark(target_model=target_model, draft_model=draft_model, dataloader=dataloader, T=args.T, top_p=args.P, 
                                                max_length=args.M, residual_graph = residual_graph, grow_map = grow_map, sampling_callables=sampling_callables, sample_gather_indices = sample_gather_indices)
 elif args.Mode == 'baseline':
-    simulation_baseline(target_model=target_model, dataloader=dataloader, T=args.T, top_p=args.P)
+    simulation_baseline(target_model=target_model, dataloader=dataloader, T=args.T, top_p=args.P, max_length=args.M)
 elif args.Mode == 'greedy':
     simulation_fast(target_model=target_model, draft_model=draft_model, dataloader=dataloader, T=args.T, top_p=args.P,
                                      max_length=args.M, residual_graph = residual_graph, grow_map = grow_map, sampling_callables=sampling_callables, sample_gather_indices = sample_gather_indices)
