@@ -1,6 +1,11 @@
 # Sequoia: Scalable, Robust, and Hardware-aware Speculative Decoding
 
-Refactored Repo [[UMbreLLa](https://github.com/Infini-AI-Lab/UMbreLLa)] for more efficient and transparent implementations.
+Check our refactored repo [[UMbreLLa](https://github.com/Infini-AI-Lab/UMbreLLa)] for 
+- [√] Up-to-date models (Llama3, Qwen, Deepseek).
+- [√] AWQ support.
+- [√] Gradio, API, and CLI chatbots.
+
+
 [[paper](https://arxiv.org/abs/2402.12374)]
 ## Environment Set Up
 We recommend the following commands to set up the environment
